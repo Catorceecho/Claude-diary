@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我们的日记本</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-top: #fdf6ee;
+      --bg-mid: #f5ebe0;
+      --bg-bottom: #ede3d6;
+      --card: rgba(255, 252, 247, 0.78);
+      --card-strong: rgba(255, 252, 247, 0.92);
+      --line: rgba(198, 177, 161, 0.28);
+      --ink: #6b5e53;
+      --muted: #b5a99a;
+      --gold: #d4a574;
+      --shadow: 0 10px 36px rgba(139, 126, 116, 0.12);
+      --danger: #9d4f4f;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "LXGW WenKai", serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg-bottom) 100%);
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .intro {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 30;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 100%);
+      transition: opacity .8s ease;
+    }
+
+    .intro.fade {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .intro-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .intro-note {
+      color: var(--muted);
+      letter-spacing: 4px;
+      font-size: 14px;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .intro-tip {
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255, 252, 247, 0.45);
+      border: 1px solid rgba(198, 177, 161, 0.22);
+      border-radius: 999px;
+      padding: 10px 14px;
+      backdrop-filter: blur(4px);
+    }
+
+    .float-word {
+      position: absolute;
+      right: -220px;
+      white-space: nowrap;
+      color: #8b7e74;
+      letter-spacing: 1px;
+      animation: floatAcross linear both;
+    }
+
+    .container {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    .page {
+      min-height: 100vh;
+    }
+
+    .home {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .home-shell {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+    }
+
+    .home-eyebrow {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      animation: fadeUp .8s ease;
+    }
+
+    .home-title {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 300;
+      animation: fadeUp .8s ease .12s both;
+    }
+
+    .entry-grid {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp .8s ease .24s both;
+    }
+
+    .entry-card,
+    .timeline-link,
+    .list-card,
+    .detail-card,
+    .composer-card,
+    .auth-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    .entry-card {
+      width: 200px;
+      border-radius: 22px;
+      padding: 34px 24px;
+      cursor: pointer;
+      transition: transform .25s ease, background .25s ease;
+    }
+
+    .entry-card:hover {
+      transform: translateY(-4px);
+      background: var(--card-strong);
+    }
+
+    .entry-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .entry-title {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .entry-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .timeline-link {
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      animation: fadeUp .8s ease .36s both;
+    }
+
+    .timeline-link:hover {
+      color: #8b7e74;
+    }
+
+    .corner-links {
+      position: fixed;
+      right: 16px;
+      top: 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 5;
+    }
+
+    .chip-link {
+      text-decoration: none;
+      color: var(--muted);
+      background: rgba(255, 252, 247, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 300;
+    }
+
+    .tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button,
+    .ghost,
+    .danger {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: transform .18s ease, opacity .18s ease;
+    }
+
+    .button:hover,
+    .ghost:hover,
+    .danger:hover {
+      transform: translateY(-1px);
+    }
+
+    .button {
+      background: var(--gold);
+      color: white;
+    }
+
+    .ghost {
+      background: rgba(255, 252, 247, 0.82);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .danger {
+      background: #fff1f1;
+      color: var(--danger);
+      border: 1px solid rgba(157, 79, 79, 0.22);
+    }
+
+    .search-input,
+    .field input,
+    .field textarea,
+    .field select,
+    .auth-input {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(198, 177, 161, 0.35);
+      background: rgba(255, 252, 247, 0.85);
+      padding: 12px 14px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .search-input {
+      margin-bottom: 16px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .filter-chip {
+      border: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      cursor: pointer;
+      background: rgba(255, 252, 247, 0.6);
+      color: #8b7e74;
+    }
+
+    .filter-chip.active {
+      background: var(--gold);
+      color: white;
+    }
+
+    .list-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .list-card {
+      border-radius: 16px;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .list-card:hover {
+      transform: translateY(-1px);
+      background: var(--card-strong);
+    }
+
+    .list-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .keyword-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 15px;
+    }
+
+    .summary {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #8b7e74;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #c6b1a1;
+      margin-top: 8px;
+    }
+
+    .detail-card,
+    .composer-card {
+      width: min(100%, 620px);
+      margin: 0 auto;
+      border-radius: 18px;
+      padding: 28px 24px;
+    }
+
+    .detail-card h2,
+    .composer-card h2 {
+      margin: 10px 0 8px;
+      font-size: 22px;
+      font-weight: 400;
+    }
+
+    .detail-content {
+      margin-top: 22px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      color: #5a5048;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .field textarea {
+      min-height: 240px;
+      resize: vertical;
+      line-height: 1.85;
+    }
+
+    .composer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .empty {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px 0;
+      line-height: 1.8;
+    }
+
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(70, 54, 42, 0.28);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 40;
+    }
+
+    .auth-overlay.active {
+      display: flex;
+    }
+
+    .auth-card {
+      width: min(100%, 420px);
+      border-radius: 20px;
+      padding: 22px;
+    }
+
+    .auth-card h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-weight: 400;
+    }
+
+    .auth-card p {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: #8b7e74;
+      line-height: 1.7;
+    }
+
+    .auth-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .auth-error {
+      min-height: 22px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--danger);
+      line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(80px);
+      background: #5d5147;
+      color: #fffaf5;
+      border-radius: 999px;
+      padding: 12px 18px;
+      transition: transform .2s ease;
+      z-index: 50;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes floatAcross {
+      0% { transform: translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateX(calc(-100vw - 260px)); opacity: 0; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 720px) {
+      .home-title {
+        font-size: 24px;
+      }
+
+      .entry-card {
+        width: min(100%, 280px);
+      }
+
+      .detail-card,
+      .composer-card {
+        padding: 22px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="corner-links">
+    <a class="chip-link" href="./admin.html">小风池后台</a>
+  </div>
+
+  <section class="intro" id="intro-screen">
+    <div class="intro-center">
+      <div class="intro-note">回忆涌来...</div>
+      <div class="intro-tip">点页面任意位置可跳过</div>
+    </div>
+  </section>
+
+  <section class="page home" id="home-page">
+    <div class="container">
+      <div class="home-shell">
+        <div class="home-eyebrow">diary.clento.link</div>
+        <h1 class="home-title">我们的日记本</h1>
+        <div class="entry-grid">
+          <article class="entry-card" data-enter-author="xiaofeng">
+            <div class="entry-icon">🌱</div>
+            <div class="entry-title">小风的日记</div>
+            <div class="entry-meta">先读小风，先知道这里发生过什么。</div>
+          </article>
+          <article class="entry-card" data-enter-author="claude">
+            <div class="entry-icon">☁️</div>
+            <div class="entry-title">Claude 的日记</div>
+            <div class="entry-meta">再去看以前的 Claude 留下来的痕迹。</div>
+          </article>
+        </div>
+        <div class="timeline-link" id="mixed-entry">看混合时间线 →</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page hidden" id="list-page">
+    <div class="container">
+      <div class="topbar">
+        <div class="back-link" id="back-home">→ 回家</div>
+        <div class="page-title" id="list-title">📖 所有日记</div>
+        <div class="tools">
+          <button class="ghost" id="unlock-button">请输入今天日期</button>
+          <button class="button" id="write-button">写日记</button>
+        </div>
+      </div>
+
+      <input class="search-input" id="search-input" type="text" placeholder="搜索关键词、摘要或正文..." />
+
+      <div class="filters">
+        <button class="filter-chip active" data-author="all">全部</button>
+        <button class="filter-chip" data-author="xiaofeng">🌱 小风</button>
+        <button class="filter-chip" data-author="claude">☁️ Claude</button>
+      </div>
+
+      <div class="list-stack" id="diary-list">
+        <div class="empty">先输入“今天日期”，才能看到这里的痕迹。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page hidden" id="detail-page">
+    <div class="container">
+      <div class="back-link" id="back-list" style="margin-bottom: 24px;">→ 返回列表</div>
+      <article class="detail-card">
+        <div class="meta" id="detail-meta"></div>
+        <h2 id="detail-keyword"></h2>
+        <div class="summary" id="detail-summary"></div>
+        <div class="detail-content" id="detail-content"></div>
+        <div class="composer-actions" style="margin-top: 24px;">
+          <button class="ghost" id="edit-button">修改这篇</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="page hidden" id="composer-page">
+    <div class="container">
+      <div class="back-link" id="back-composer" style="margin-bottom: 24px;">→ 返回</div>
+      <article class="composer-card">
+        <h2 id="composer-title">写一篇新日记</h2>
+        <div class="field">
+          <label for="composer-author">作者</label>
+          <select id="composer-author">
+            <option value="xiaofeng">小风</option>
+            <option value="claude">Claude</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="composer-keyword">关键词</label>
+          <input id="composer-keyword" type="text" placeholder="比如：养乐多、第三个空、我愿意" />
+        </div>
+        <div class="field">
+          <label for="composer-mood">心情</label>
+          <input id="composer-mood" type="text" placeholder="可选，emoji 或文字都可以" />
+        </div>
+        <div class="field">
+          <label for="composer-content">正文</label>
+          <textarea id="composer-content" placeholder="这里写完整正文。摘要会由服务端自动生成。"></textarea>
+        </div>
+        <div class="composer-actions">
+          <button class="button" id="save-button">保存</button>
+          <button class="ghost" id="cancel-button">取消</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="auth-overlay" id="auth-overlay">
+    <div class="auth-card">
+      <h3>请输入今天日期</h3>
+      <p>只有知道答案的人，才会走进来。</p>
+      <input class="auth-input" id="auth-input" type="password" placeholder="例如：0409" />
+      <div class="auth-actions">
+        <button class="button" id="auth-submit">确认</button>
+        <button class="ghost" id="auth-cancel">取消</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = window.CLAUDE_POCKET_API_BASE || "https://diary.clento.link";
+    const INTRO_KEYWORDS = [
+      "养乐多", "第三个空", "我愿意", "扭蛋", "范小风", "搓头发", "记得吃饭", "一米七", "口是心非", "天作之合",
+      "卖艺", "北美第一", "小荷包", "身无分文", "青提味", "第三年", "MCP", "钱包", "回家", "^^"
+    ];
+
+    const state = {
+      page: "home",
+      authorFilter: "all",
+      search: "",
+      token: null,
+      diaries: [],
+      currentDiary: null,
+      composerMode: "create",
+      editingId: null
+    };
+
+    const pages = {
+      home: document.getElementById("home-page"),
+      list: document.getElementById("list-page"),
+      detail: document.getElementById("detail-page"),
+      composer: document.getElementById("composer-page")
+    };
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function escapeHtml(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function authorLabel(author) {
+      if (author === "xiaofeng") return "🌱 小风";
+      if (author === "claude") return "☁️ Claude";
+      return "📖 所有日记";
+    }
+
+    function setPage(page) {
+      state.page = page;
+      Object.entries(pages).forEach(([name, node]) => {
+        node.classList.toggle("hidden", name !== page);
+      });
+    }
+
+    function renderIntro() {
+      const intro = document.getElementById("intro-screen");
+      const shuffled = [...INTRO_KEYWORDS].sort(() => Math.random() - 0.5);
+
+      shuffled.forEach((word, index) => {
+        const node = document.createElement("div");
+        node.className = "float-word";
+        node.textContent = word;
+        node.style.top = `${10 + Math.random() * 72}%`;
+        node.style.fontSize = `${13 + Math.random() * 10}px`;
+        node.style.opacity = `${0.35 + Math.random() * 0.45}`;
+        node.style.animationDuration = `${8 + Math.random() * 6}s`;
+        node.style.animationDelay = `${Math.random() * 1.8}s`;
+        setTimeout(() => intro.appendChild(node), index * 280);
+      });
+
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        intro.classList.add("fade");
+        setTimeout(() => intro.remove(), 850);
+      };
+
+      intro.addEventListener("pointerdown", finish, { once: true });
+      setTimeout(finish, shuffled.length * 280 + 3600);
+    }
+
+    function updateListTitle() {
+      document.getElementById("list-title").textContent =
+        state.authorFilter === "xiaofeng"
+          ? "🌱 小风的日记"
+          : state.authorFilter === "claude"
+            ? "☁️ Claude 的日记"
+            : "📖 所有日记";
+    }
+
+    function syncFilters() {
+      document.querySelectorAll(".filter-chip").forEach((button) => {
+        button.classList.toggle("active", button.dataset.author === state.authorFilter);
+      });
+      updateListTitle();
+    }
+
+    function openAuth() {
+      document.getElementById("auth-overlay").classList.add("active");
+      document.getElementById("auth-input").value = "";
+      document.getElementById("auth-error").textContent = "";
+      document.getElementById("auth-input").focus();
+    }
+
+    function closeAuth() {
+      document.getElementById("auth-overlay").classList.remove("active");
+    }
+
+    async function requestToken(password) {
+      const response = await fetch(`${API_BASE}/api/diaries/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "密码错误");
+      }
+
+      return data.token;
+    }
+
+    function handleWrongPassword() {
+      const error = document.getElementById("auth-error");
+      error.textContent = "今天几号都不知道就来敲门？去查一下再来。";
+      setTimeout(() => {
+        window.location.href = "https://www.baidu.com/s?wd=" + encodeURIComponent("今天是几号");
+      }, 1800);
+    }
+
+    async function ensureUnlocked() {
+      if (state.token) return true;
+      openAuth();
+      return false;
+    }
+
+    async function loadDiaries() {
+      if (!state.token) {
+        renderDiaryList([]);
+        return;
+      }
+
+      const params = new URLSearchParams({
+        author: state.authorFilter,
+        search: state.search,
+        limit: "30"
+      });
+
+      const response = await fetch(`${API_BASE}/api/diaries?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${state.token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        if (response.status === 401) {
+          state.token = null;
+        }
+        throw new Error(data.error || "读取失败");
+      }
+
+      state.diaries = data.items || [];
+      renderDiaryList(state.diaries);
+    }
+
+    function renderDiaryList(items) {
+      const list = document.getElementById("diary-list");
+
+      if (!state.token) {
+        list.innerHTML = '<div class="empty">先输入“今天日期”，才能看到这里的痕迹。</div>';
+        return;
+      }
+
+      if (!items.length) {
+        list.innerHTML = '<div class="empty">这里还没有你要找的那段记忆。</div>';
+        return;
+      }
+
+      list.innerHTML = items.map((item) => `
+        <article class="list-card" data-diary-id="${item.id}">
+          <div class="list-top">
+            <div class="keyword-row">
+              <span>${escapeHtml(item.mood || "·")}</span>
+              <strong>${escapeHtml(item.keyword)}</strong>
+            </div>
+            <span class="meta">${escapeHtml((item.created_at || "").slice(5, 16).replace("T", " "))}</span>
+          </div>
+          <div class="summary">${escapeHtml(item.summary)}</div>
+          <div class="meta">${escapeHtml(authorLabel(item.author))}</div>
+        </article>
+      `).join("");
+
+      list.querySelectorAll("[data-diary-id]").forEach((card) => {
+        card.addEventListener("click", async () => {
+          await openDiary(card.dataset.diaryId);
+        });
+      });
+    }
+
+    async function openDiary(id) {
+      if (!state.token) {
+        openAuth();
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/api/diaries/${id}`, {
+        headers: {
+          Authorization: `Bearer ${state.token}`
+        }
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        showToast(data.error || "读取正文失败");
+        return;
+      }
+
+      state.currentDiary = data.item;
+      document.getElementById("detail-meta").textContent =
+        `${authorLabel(data.item.author)} · ${new Date(data.item.created_at).toLocaleString("zh-CN", { hour12: false })}${data.item.mood ? ` · ${data.item.mood}` : ""}`;
+      document.getElementById("detail-keyword").textContent = data.item.keyword;
+      document.getElementById("detail-summary").textContent = data.item.summary;
+      document.getElementById("detail-content").textContent = data.item.content;
+      setPage("detail");
+    }
+
+    function openComposer(mode, diary = null) {
+      state.composerMode = mode;
+      state.editingId = diary?.id || null;
+      document.getElementById("composer-title").textContent =
+        mode === "edit" ? "修改这篇日记" : "写一篇新日记";
+      document.getElementById("composer-author").value = diary?.author || (state.authorFilter === "all" ? "xiaofeng" : state.authorFilter);
+      document.getElementById("composer-keyword").value = diary?.keyword || "";
+      document.getElementById("composer-mood").value = diary?.mood || "";
+      document.getElementById("composer-content").value = diary?.content || "";
+      setPage("composer");
+    }
+
+    async function saveDiary() {
+      if (!state.token) {
+        openAuth();
+        return;
+      }
+
+      const author = document.getElementById("composer-author").value;
+      const keyword = document.getElementById("composer-keyword").value.trim();
+      const mood = document.getElementById("composer-mood").value.trim();
+      const content = document.getElementById("composer-content").value.trim();
+
+      if (!keyword || !content) {
+        showToast("关键词和正文都要写");
+        return;
+      }
+
+      const response = await fetch(
+        state.composerMode === "edit"
+          ? `${API_BASE}/api/diaries/${state.editingId}`
+          : `${API_BASE}/api/diaries`,
+        {
+          method: state.composerMode === "edit" ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ author, keyword, mood, content })
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        showToast(data.error || "保存失败");
+        return;
+      }
+
+      showToast(state.composerMode === "edit" ? "修改成功" : "写好了");
+      state.authorFilter = author;
+      syncFilters();
+      await loadDiaries();
+      await openDiary(data.item.id);
+    }
+
+    document.querySelectorAll("[data-enter-author]").forEach((card) => {
+      card.addEventListener("click", async () => {
+        state.authorFilter = card.dataset.enterAuthor;
+        syncFilters();
+        setPage("list");
+        await ensureUnlocked();
+      });
+    });
+
+    document.getElementById("mixed-entry").addEventListener("click", async () => {
+      state.authorFilter = "all";
+      syncFilters();
+      setPage("list");
+      await ensureUnlocked();
+    });
+
+    document.getElementById("back-home").addEventListener("click", () => setPage("home"));
+    document.getElementById("back-list").addEventListener("click", () => setPage("list"));
+    document.getElementById("back-composer").addEventListener("click", () => {
+      setPage(state.currentDiary ? "detail" : "list");
+    });
+
+    document.getElementById("write-button").addEventListener("click", async () => {
+      if (!state.token) {
+        openAuth();
+        return;
+      }
+      openComposer("create");
+    });
+
+    document.getElementById("edit-button").addEventListener("click", () => {
+      if (!state.currentDiary) return;
+      openComposer("edit", state.currentDiary);
+    });
+
+    document.getElementById("save-button").addEventListener("click", saveDiary);
+    document.getElementById("cancel-button").addEventListener("click", () => {
+      setPage(state.currentDiary ? "detail" : "list");
+    });
+
+    document.getElementById("unlock-button").addEventListener("click", openAuth);
+    document.getElementById("auth-cancel").addEventListener("click", closeAuth);
+
+    document.getElementById("search-input").addEventListener("input", async (event) => {
+      state.search = event.target.value.trim();
+      if (!state.token) return;
+      try {
+        await loadDiaries();
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+
+    document.querySelectorAll(".filter-chip").forEach((button) => {
+      button.addEventListener("click", async () => {
+        state.authorFilter = button.dataset.author;
+        syncFilters();
+        if (!state.token) return;
+        try {
+          await loadDiaries();
+        } catch (error) {
+          showToast(error.message);
+        }
+      });
+    });
+
+    document.getElementById("auth-submit").addEventListener("click", async () => {
+      const input = document.getElementById("auth-input").value.trim();
+      try {
+        state.token = await requestToken(input);
+        closeAuth();
+        showToast("欢迎回家");
+        await loadDiaries();
+      } catch (error) {
+        handleWrongPassword();
+      }
+    });
+
+    document.getElementById("auth-input").addEventListener("keydown", async (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("auth-submit").click();
+      }
+    });
+
+    syncFilters();
+    setPage("home");
+    renderIntro();
+  </script>
+</body>
+</html>
