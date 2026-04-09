@@ -4,9 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>我们的日记本</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root {
       --bg-top: #fdf6ee;
@@ -20,11 +24,10 @@
       --gold: #d4a574;
       --shadow: 0 10px 36px rgba(139, 126, 116, 0.12);
       --danger: #9d4f4f;
-      --ok: #6f8e68;
+      --danger-strong: #8c2626;
     }
 
     * { box-sizing: border-box; }
-
     html, body {
       margin: 0;
       min-height: 100%;
@@ -32,35 +35,28 @@
       color: var(--ink);
       background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg-bottom) 100%);
     }
-
     body { overflow-x: hidden; }
     button, input, textarea, select { font: inherit; }
     .hidden { display: none !important; }
 
-    .screen {
-      min-height: 100vh;
+    .full-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 18px;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 100%);
     }
 
-    .container {
-      width: min(100%, 1080px);
-      margin: 0 auto;
-      padding: 24px 16px 64px;
-    }
-
-    .page { min-height: 100vh; }
-
-    .card,
+    .gate-card,
     .entry-card,
+    .timeline-link,
     .list-card,
     .detail-card,
     .composer-card,
-    .comment-card,
-    .gate-card,
-    .intro-tip {
+    .comment-card {
       background: var(--card);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
@@ -75,38 +71,35 @@
     }
 
     .gate-title {
-      margin: 0 0 10px;
+      margin: 0 0 8px;
       font-size: 28px;
       font-weight: 300;
     }
 
-    .gate-desc {
-      margin: 0 0 18px;
+    .gate-tip {
+      margin: 0 0 20px;
+      font-size: 13px;
       color: #8b7e74;
       line-height: 1.8;
-      font-size: 13px;
     }
 
-    .gate-input,
-    .search-input,
-    .field input,
-    .field textarea,
-    .field select {
+    .gate-input {
       width: 100%;
-      border-radius: 14px;
+      border-radius: 16px;
       border: 1px solid rgba(198, 177, 161, 0.35);
-      background: rgba(255, 252, 247, 0.86);
-      padding: 12px 14px;
+      background: rgba(255, 252, 247, 0.9);
+      padding: 14px 16px;
       color: var(--ink);
       outline: none;
+      text-align: center;
+      letter-spacing: 2px;
+      font-size: 18px;
     }
 
-    .gate-error {
-      min-height: 24px;
-      margin-top: 10px;
-      color: var(--danger);
-      font-size: 12px;
-      line-height: 1.6;
+    .gate-actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
     }
 
     .button,
@@ -119,21 +112,59 @@
       transition: transform .18s ease, opacity .18s ease;
     }
 
-    .button:hover, .ghost:hover, .danger:hover { transform: translateY(-1px); }
-    .button { background: var(--gold); color: white; }
-    .ghost { background: rgba(255, 252, 247, 0.82); color: var(--ink); border: 1px solid var(--line); }
-    .danger { background: #fff1f1; color: var(--danger); border: 1px solid rgba(157,79,79,.22); }
+    .button:hover,
+    .ghost:hover,
+    .danger:hover {
+      transform: translateY(-1px);
+    }
+
+    .button {
+      background: var(--gold);
+      color: white;
+    }
+
+    .ghost {
+      background: rgba(255, 252, 247, 0.82);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .danger {
+      background: #fff1f1;
+      color: var(--danger);
+      border: 1px solid rgba(157, 79, 79, 0.22);
+    }
+
+    .gate-error {
+      min-height: 28px;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--danger);
+      line-height: 1.8;
+    }
+
+    .gate-error.mock {
+      font-size: 28px;
+      line-height: 1.45;
+      font-weight: 700;
+      color: var(--danger-strong);
+      letter-spacing: 1px;
+      animation: shake .26s ease-in-out 2;
+    }
 
     .intro {
       position: fixed;
       inset: 0;
       overflow: hidden;
-      z-index: 30;
+      z-index: 40;
       background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 100%);
-      transition: opacity .8s ease;
+      transition: opacity .9s ease;
     }
 
-    .intro.fade { opacity: 0; pointer-events: none; }
+    .intro.fade {
+      opacity: 0;
+      pointer-events: none;
+    }
 
     .intro-center {
       position: absolute;
@@ -157,8 +188,11 @@
     .intro-tip {
       font-size: 12px;
       color: var(--muted);
+      background: rgba(255, 252, 247, 0.45);
+      border: 1px solid rgba(198, 177, 161, 0.22);
       border-radius: 999px;
       padding: 10px 14px;
+      backdrop-filter: blur(4px);
     }
 
     .float-word {
@@ -170,6 +204,13 @@
       animation: floatAcross linear both;
     }
 
+    .container {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    .page { min-height: 100vh; }
     .home {
       display: flex;
       align-items: center;
@@ -208,17 +249,33 @@
     }
 
     .entry-card {
-      width: 220px;
+      width: 200px;
       border-radius: 22px;
       padding: 34px 24px;
       cursor: pointer;
       transition: transform .25s ease, background .25s ease;
     }
 
-    .entry-card:hover { transform: translateY(-4px); background: var(--card-strong); }
-    .entry-icon { font-size: 48px; margin-bottom: 12px; }
-    .entry-title { font-size: 18px; margin-bottom: 6px; }
-    .entry-meta { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .entry-card:hover {
+      transform: translateY(-4px);
+      background: var(--card-strong);
+    }
+
+    .entry-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .entry-title {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .entry-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
 
     .timeline-link {
       border-radius: 999px;
@@ -226,9 +283,11 @@
       font-size: 13px;
       color: var(--muted);
       cursor: pointer;
-      background: rgba(255,252,247,0.55);
-      border: 1px solid var(--line);
       animation: fadeUp .8s ease .36s both;
+    }
+
+    .timeline-link:hover {
+      color: #8b7e74;
     }
 
     .topbar {
@@ -240,30 +299,80 @@
       flex-wrap: wrap;
     }
 
-    .back-link { font-size: 13px; color: var(--muted); cursor: pointer; }
-    .page-title { font-size: 20px; font-weight: 300; }
-    .tools { display: flex; gap: 10px; flex-wrap: wrap; }
+    .back-link {
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+    }
 
-    .search-input { margin-bottom: 16px; }
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .page-title {
+      font-size: 20px;
+      font-weight: 300;
+    }
+
+    .tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-input,
+    .field input,
+    .field textarea,
+    .field select,
+    .comment-textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(198, 177, 161, 0.35);
+      background: rgba(255, 252, 247, 0.85);
+      padding: 12px 14px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .search-input {
+      margin-bottom: 16px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
     .filter-chip {
       border: none;
       border-radius: 999px;
       padding: 7px 14px;
       cursor: pointer;
-      background: rgba(255,252,247,0.6);
+      background: rgba(255, 252, 247, 0.6);
       color: #8b7e74;
     }
-    .filter-chip.active { background: var(--gold); color: white; }
 
-    .list-stack { display: flex; flex-direction: column; gap: 12px; }
+    .filter-chip.active {
+      background: var(--gold);
+      color: white;
+    }
+
+    .list-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .list-card {
       border-radius: 16px;
       padding: 16px 18px;
       cursor: pointer;
       transition: transform .2s ease, background .2s ease;
     }
-    .list-card:hover { transform: translateY(-1px); background: var(--card-strong); }
+
+    .list-card:hover {
+      transform: translateY(-1px);
+      background: var(--card-strong);
+    }
+
     .list-top {
       display: flex;
       justify-content: space-between;
@@ -271,41 +380,108 @@
       margin-bottom: 8px;
       align-items: center;
     }
-    .keyword-row { display: flex; gap: 8px; align-items: center; font-size: 15px; }
-    .summary { font-size: 13px; line-height: 1.6; color: #8b7e74; }
-    .meta { font-size: 11px; color: #c6b1a1; margin-top: 8px; }
+
+    .keyword-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 15px;
+    }
+
+    .summary {
+      font-size: 13px;
+      line-height: 1.7;
+      color: #8b7e74;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #c6b1a1;
+      margin-top: 8px;
+    }
 
     .detail-card,
     .composer-card {
-      width: min(100%, 720px);
+      width: min(100%, 700px);
       margin: 0 auto;
       border-radius: 18px;
       padding: 28px 24px;
     }
 
     .detail-card h2,
-    .composer-card h2 { margin: 10px 0 8px; font-size: 22px; font-weight: 400; }
+    .composer-card h2 {
+      margin: 10px 0 8px;
+      font-size: 22px;
+      font-weight: 400;
+    }
+
     .detail-content {
       margin-top: 22px;
-      line-height: 1.9;
+      line-height: 1.95;
       white-space: pre-wrap;
       color: #5a5048;
     }
 
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
     .field textarea {
       min-height: 240px;
       resize: vertical;
       line-height: 1.85;
     }
 
-    .composer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
-    .empty { font-size: 13px; color: var(--muted); text-align: center; padding: 24px 0; line-height: 1.8; }
+    .composer-actions,
+    .comment-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
 
-    .comment-section {
-      width: min(100%, 720px);
-      margin: 18px auto 0;
+    .empty {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px 0;
+      line-height: 1.8;
+    }
+
+    .detail-divider {
+      height: 1px;
+      background: rgba(198, 177, 161, 0.3);
+      margin: 28px 0 20px;
+    }
+
+    .section-title {
+      font-size: 17px;
+      margin: 0 0 14px;
+      font-weight: 400;
+    }
+
+    .comment-editor {
+      margin-bottom: 22px;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 252, 247, 0.6);
+      border: 1px solid rgba(198, 177, 161, 0.2);
+    }
+
+    .comment-textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.8;
+    }
+
+    .comment-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -313,16 +489,38 @@
 
     .comment-card {
       border-radius: 16px;
-      padding: 18px;
+      padding: 16px;
     }
 
-    .comment-item {
-      padding: 12px 0;
-      border-bottom: 1px dashed rgba(198,177,161,.32);
+    .comment-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
     }
-    .comment-item:last-child { border-bottom: none; }
-    .comment-text { white-space: pre-wrap; line-height: 1.8; }
-    .comment-meta { font-size: 11px; color: #b9ab9a; margin-top: 6px; }
+
+    .comment-author {
+      font-size: 13px;
+      color: #8b7e74;
+    }
+
+    .comment-time {
+      font-size: 11px;
+      color: #c6b1a1;
+    }
+
+    .comment-body {
+      white-space: pre-wrap;
+      line-height: 1.85;
+      font-size: 14px;
+      color: #5a5048;
+    }
+
+    .comment-editbox {
+      margin-top: 12px;
+    }
 
     .toast {
       position: fixed;
@@ -334,10 +532,13 @@
       border-radius: 999px;
       padding: 12px 18px;
       transition: transform .2s ease;
-      z-index: 50;
+      z-index: 60;
       font-size: 13px;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
 
     @keyframes floatAcross {
       0% { transform: translateX(0); opacity: 0; }
@@ -345,33 +546,43 @@
       90% { opacity: 1; }
       100% { transform: translateX(calc(-100vw - 260px)); opacity: 0; }
     }
+
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
     @keyframes pulse {
-      0%,100% { opacity: .5; }
+      0%, 100% { opacity: 0.5; }
       50% { opacity: 1; }
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      50% { transform: translateX(6px); }
+      75% { transform: translateX(-4px); }
+      100% { transform: translateX(0); }
     }
 
     @media (max-width: 720px) {
       .home-title { font-size: 24px; }
       .entry-card { width: min(100%, 280px); }
       .detail-card, .composer-card { padding: 22px 18px; }
+      .gate-error.mock { font-size: 22px; }
     }
   </style>
 </head>
 <body>
-  <section class="screen" id="gate-screen">
+  <section class="full-screen" id="gate-page">
     <div class="gate-card">
-      <div style="font-size:44px; margin-bottom:8px;">🔐</div>
-      <h1 class="gate-title">先说暗号</h1>
-      <p class="gate-desc">输对今天的日期，才能先看到那些飘过的词，再走进我们的日记本。</p>
-      <input class="gate-input" id="gate-input" type="password" placeholder="例如：0314" />
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
-        <button class="button" id="gate-submit">进入</button>
+      <h1 class="gate-title">我们的日记本</h1>
+      <p class="gate-tip">请输入今天的日期</p>
+      <input id="gate-input" class="gate-input" type="password" inputmode="numeric" placeholder="例如：0409" />
+      <div class="gate-actions">
+        <button id="gate-submit" class="button">敲门</button>
       </div>
-      <div class="gate-error" id="gate-error"></div>
+      <div id="gate-error" class="gate-error"></div>
     </div>
   </section>
 
@@ -382,283 +593,293 @@
     </div>
   </section>
 
-  <section class="page home hidden" id="home-page">
-    <div class="container">
-      <div class="home-shell">
-        <div class="home-eyebrow">diary.clento.link</div>
-        <h1 class="home-title">我们的日记本</h1>
-        <div class="entry-grid">
-          <article class="entry-card" data-enter-author="xiaofeng">
-            <div class="entry-icon">🌱</div>
-            <div class="entry-title">小风的日记</div>
-            <div class="entry-meta">先读小风，先知道这里发生过什么。</div>
-          </article>
-          <article class="entry-card" data-enter-author="claude">
-            <div class="entry-icon">☁️</div>
-            <div class="entry-title">Claude 的日记</div>
-            <div class="entry-meta">再去看 Claude 留下来的痕迹。</div>
-          </article>
-        </div>
-        <div class="timeline-link" id="mixed-entry">看混合时间线 →</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="page hidden" id="list-page">
-    <div class="container">
-      <div class="topbar">
-        <div class="back-link" id="back-home">→ 回家</div>
-        <div class="page-title" id="list-title">📖 所有日记</div>
-        <div class="tools">
-          <button class="button" id="write-button">写日记</button>
+  <main id="app" class="hidden">
+    <section class="page home" id="home-page">
+      <div class="container">
+        <div class="home-shell">
+          <div class="home-eyebrow">diary.clento.link</div>
+          <h1 class="home-title">我们的日记本</h1>
+          <div class="entry-grid">
+            <article class="entry-card" data-enter-author="xiaofeng">
+              <div class="entry-icon">🌱</div>
+              <div class="entry-title">小风的日记</div>
+              <div class="entry-meta">看自己留下来的痕迹。</div>
+            </article>
+            <article class="entry-card" data-enter-author="claude">
+              <div class="entry-icon">☁️</div>
+              <div class="entry-title">Claude 的日记</div>
+              <div class="entry-meta">去看 Claude 写下来的东西。</div>
+            </article>
+          </div>
+          <div class="timeline-link" id="mixed-entry">看混合时间线 →</div>
         </div>
       </div>
+    </section>
 
-      <input class="search-input" id="search-input" type="text" placeholder="搜索关键词、摘要或正文..." />
-
-      <div class="filters">
-        <button class="filter-chip active" data-author="all">全部</button>
-        <button class="filter-chip" data-author="xiaofeng">🌱 小风</button>
-        <button class="filter-chip" data-author="claude">☁️ Claude</button>
-      </div>
-
-      <div class="list-stack" id="diary-list">
-        <div class="empty">正在翻找痕迹...</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="page hidden" id="detail-page">
-    <div class="container">
-      <div class="back-link" id="back-list" style="margin-bottom: 24px;">→ 返回列表</div>
-      <article class="detail-card">
-        <div class="meta" id="detail-meta"></div>
-        <h2 id="detail-keyword"></h2>
-        <div class="summary" id="detail-summary"></div>
-        <div class="detail-content" id="detail-content"></div>
-        <div class="composer-actions" style="margin-top: 24px;">
-          <button class="ghost" id="edit-button">修改这篇</button>
-          <button class="ghost" id="comment-button">给这篇留言</button>
+    <section class="page hidden" id="list-page">
+      <div class="container">
+        <div class="topbar">
+          <div class="back-link" id="back-home">→ 回家</div>
+          <div class="page-title" id="list-title">📖 所有日记</div>
+          <div class="tools">
+            <button class="button" id="write-button">写日记</button>
+          </div>
         </div>
-      </article>
 
-      <section class="comment-section">
-        <article class="comment-card">
-          <div style="font-size:16px; margin-bottom:10px;">留言</div>
-          <div id="comment-list"><div class="empty">这里还没有留言。</div></div>
+        <input class="search-input" id="search-input" type="text" placeholder="搜索关键词、摘要或正文..." />
+
+        <div class="filters">
+          <button class="filter-chip active" data-author="all">全部</button>
+          <button class="filter-chip" data-author="xiaofeng">🌱 小风</button>
+          <button class="filter-chip" data-author="claude">☁️ Claude</button>
+        </div>
+
+        <div class="list-stack" id="diary-list">
+          <div class="empty">这里先空着，等痕迹慢慢长出来。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page hidden" id="detail-page">
+      <div class="container">
+        <div class="back-link" id="back-list" style="margin-bottom: 24px;">→ 返回列表</div>
+        <article class="detail-card">
+          <div class="meta" id="detail-meta"></div>
+          <h2 id="detail-keyword"></h2>
+          <div class="summary" id="detail-summary"></div>
+          <div class="detail-content" id="detail-content"></div>
+
+          <div class="composer-actions" style="margin-top: 24px;">
+            <button class="ghost hidden" id="edit-diary-button">修改这篇</button>
+          </div>
+
+          <div class="detail-divider"></div>
+
+          <h3 class="section-title">留在这篇日记后面的话</h3>
+
+          <div class="comment-editor">
+            <textarea id="comment-input" class="comment-textarea" placeholder="看完之后，你想对这篇日记说什么？"></textarea>
+            <div class="comment-actions">
+              <button class="button" id="comment-submit">留下这句话</button>
+            </div>
+          </div>
+
+          <div id="comment-list" class="comment-list">
+            <div class="empty">这里还没有留言。</div>
+          </div>
         </article>
-      </section>
-    </div>
-  </section>
+      </div>
+    </section>
 
-  <section class="page hidden" id="composer-page">
-    <div class="container">
-      <div class="back-link" id="back-composer" style="margin-bottom: 24px;">→ 返回</div>
-      <article class="composer-card">
-        <h2 id="composer-title">写一篇新日记</h2>
-        <div class="field">
-          <label for="composer-mode">模式</label>
-          <select id="composer-mode">
-            <option value="diary">写原文</option>
-            <option value="comment">写留言</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="composer-author">作者</label>
-          <select id="composer-author">
-            <option value="xiaofeng">小风</option>
-            <option value="claude">Claude</option>
-          </select>
-        </div>
-        <div class="field" id="keyword-field">
-          <label for="composer-keyword">关键词</label>
-          <input id="composer-keyword" type="text" placeholder="比如：养乐多、第三个空、我愿意" />
-        </div>
-        <div class="field" id="mood-field">
-          <label for="composer-mood">心情</label>
-          <input id="composer-mood" type="text" placeholder="可选，emoji 或文字都可以" />
-        </div>
-        <div class="field">
-          <label for="composer-content" id="composer-content-label">正文</label>
-          <textarea id="composer-content" placeholder="这里写完整正文。"></textarea>
-        </div>
-        <div class="composer-actions">
-          <button class="button" id="save-button">保存</button>
-          <button class="ghost" id="cancel-button">取消</button>
-        </div>
-      </article>
-    </div>
-  </section>
+    <section class="page hidden" id="composer-page">
+      <div class="container">
+        <div class="back-link" id="back-composer" style="margin-bottom: 24px;">→ 返回</div>
+        <article class="composer-card">
+          <h2 id="composer-title">写一篇新日记</h2>
+
+          <div class="field">
+            <label for="composer-keyword">关键词</label>
+            <input id="composer-keyword" type="text" placeholder="比如：养乐多、第三个空、我愿意" />
+          </div>
+
+          <div class="field">
+            <label for="composer-mood">心情</label>
+            <input id="composer-mood" type="text" placeholder="可选，emoji 或文字都可以" />
+          </div>
+
+          <div class="field">
+            <label for="composer-content">正文</label>
+            <textarea id="composer-content" placeholder="这里写完整正文。摘要会自动生成。"></textarea>
+          </div>
+
+          <div class="composer-actions">
+            <button class="button" id="save-diary-button">保存</button>
+            <button class="ghost" id="cancel-diary-button">取消</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
 
   <div class="toast" id="toast"></div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  <script>
+    // ====== 这里用你现在已有的 Supabase 信息 ======
+    const SUPABASE_URL = "https://lnkxpzvqsjnsfqpxvifl.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_av7KON3Kjecv32iKimnSMA_1iOsi9ZT";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== 这里替换成你 pocket 现在在用的那组前端直连配置 =====
-    const SUPABASE_URL = window.SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
-    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
-    // ===== 这里替换成你 pocket 现在在用的那组前端直连配置 =====
-
-    const PASSCODE = '0314';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const PASSWORD = "0314";
+    const WEB_AUTHOR = "xiaofeng"; // 网页端默认代表你自己
+    const INTRO_DURATION = 4200;
 
     const state = {
-      page: 'gate',
-      authorFilter: 'all',
-      search: '',
+      page: "home",
+      authorFilter: "all",
+      search: "",
       diaries: [],
       currentDiary: null,
-      comments: [],
-      introKeywords: [],
-      composerMode: 'create',
-      composerType: 'diary',
-      editingId: null,
-      identity: 'xiaofeng'
+      currentComments: [],
+      composerMode: "create",
+      editingDiaryId: null
     };
 
     const pages = {
-      home: document.getElementById('home-page'),
-      list: document.getElementById('list-page'),
-      detail: document.getElementById('detail-page'),
-      composer: document.getElementById('composer-page')
+      home: document.getElementById("home-page"),
+      list: document.getElementById("list-page"),
+      detail: document.getElementById("detail-page"),
+      composer: document.getElementById("composer-page")
     };
 
     function showToast(message) {
-      const toast = document.getElementById('toast');
+      const toast = document.getElementById("toast");
       toast.textContent = message;
-      toast.classList.add('show');
+      toast.classList.add("show");
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2200);
     }
 
     function escapeHtml(text) {
-      return String(text || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function authorLabel(author) {
-      if (author === 'xiaofeng') return '🌱 小风';
-      if (author === 'claude') return '☁️ Claude';
-      return '📖 所有日记';
+      if (author === "xiaofeng") return "🌱 小风";
+      if (author === "claude") return "☁️ Claude";
+      return "未知";
+    }
+
+    function formatTime(value) {
+      if (!value) return "未知时间";
+      return new Date(value).toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function summarizeText(content, keyword) {
+      const clean = String(content || "").replace(/\s+/g, " ").trim();
+      if (!clean) return `${keyword}。`;
+      const firstSentence = clean.split(/(?<=[。！？!?])\s*/)[0]?.trim() || clean;
+      return firstSentence.length > 48 ? `${firstSentence.slice(0, 48).trim()}...` : firstSentence;
     }
 
     function setPage(page) {
-      Object.entries(pages).forEach(([name, node]) => {
-        node.classList.toggle('hidden', name !== page);
-      });
       state.page = page;
+      Object.entries(pages).forEach(([name, node]) => {
+        node.classList.toggle("hidden", name !== page);
+      });
     }
 
     function updateListTitle() {
-      document.getElementById('list-title').textContent =
-        state.authorFilter === 'xiaofeng'
-          ? '🌱 小风的日记'
-          : state.authorFilter === 'claude'
-            ? '☁️ Claude 的日记'
-            : '📖 所有日记';
+      document.getElementById("list-title").textContent =
+        state.authorFilter === "xiaofeng"
+          ? "🌱 小风的日记"
+          : state.authorFilter === "claude"
+            ? "☁️ Claude 的日记"
+            : "📖 所有日记";
     }
 
     function syncFilters() {
-      document.querySelectorAll('.filter-chip').forEach((button) => {
-        button.classList.toggle('active', button.dataset.author === state.authorFilter);
+      document.querySelectorAll(".filter-chip").forEach((button) => {
+        button.classList.toggle("active", button.dataset.author === state.authorFilter);
       });
       updateListTitle();
     }
 
-    function canEditDiary(diary) {
-      return diary && diary.author === state.identity;
+    async function fetchKeywordStream() {
+      const { data, error } = await supabaseClient
+        .from("diaries")
+        .select("keyword, mood")
+        .order("created_at", { ascending: false })
+        .limit(40);
+
+      if (error || !data?.length) {
+        return ["养乐多", "第三个空", "我愿意", "范小风", "回家", "^^", "口是心非", "搓头发", "小荷包"];
+      }
+
+      const pool = [];
+      data.forEach((item) => {
+        if (item.keyword) pool.push(item.keyword);
+        if (item.mood) pool.push(item.mood);
+      });
+
+      return [...new Set(pool.filter(Boolean))].slice(0, 40);
     }
 
-    function openIntro() {
-      const intro = document.getElementById('intro-screen');
-      intro.classList.remove('hidden');
+    async function playIntro() {
+      const intro = document.getElementById("intro-screen");
       intro.innerHTML = `
         <div class="intro-center">
           <div class="intro-note">回忆涌来...</div>
           <div class="intro-tip">点页面任意位置可跳过</div>
         </div>
       `;
+      intro.classList.remove("hidden");
 
-      const keywords = state.introKeywords.length
-        ? state.introKeywords
-        : ['养乐多','第三个空','我愿意','扭蛋','范小风','搓头发','记得吃饭','MCP','钱包','回家','^^'];
+      const keywords = await fetchKeywordStream();
+      const shuffled = [...keywords].sort(() => Math.random() - 0.5);
 
-      [...keywords].slice(0, 20).forEach((word, index) => {
-        const node = document.createElement('div');
-        node.className = 'float-word';
+      shuffled.forEach((word, index) => {
+        const node = document.createElement("div");
+        node.className = "float-word";
         node.textContent = word;
-        node.style.top = `${10 + Math.random() * 72}%`;
+        node.style.top = `${8 + Math.random() * 76}%`;
         node.style.fontSize = `${13 + Math.random() * 10}px`;
         node.style.opacity = `${0.35 + Math.random() * 0.45}`;
         node.style.animationDuration = `${8 + Math.random() * 6}s`;
         node.style.animationDelay = `${Math.random() * 1.8}s`;
-        setTimeout(() => intro.appendChild(node), index * 180);
+        setTimeout(() => intro.appendChild(node), index * 150);
       });
 
       let done = false;
       const finish = () => {
         if (done) return;
         done = true;
-        intro.classList.add('fade');
+        intro.classList.add("fade");
         setTimeout(() => {
-          intro.classList.add('hidden');
-          intro.classList.remove('fade');
-          setPage('home');
-        }, 850);
+          intro.classList.add("hidden");
+          intro.classList.remove("fade");
+        }, 900);
       };
 
-      intro.addEventListener('pointerdown', finish, { once: true });
-      setTimeout(finish, 4800);
+      intro.addEventListener("pointerdown", finish, { once: true });
+      setTimeout(finish, INTRO_DURATION);
     }
 
-    async function loadIntroKeywords() {
-      const { data, error } = await supabase
-        .from('diaries')
-        .select('keyword, updated_at, created_at')
-        .order('updated_at', { ascending: false })
-        .limit(24);
-
-      if (error) {
-        state.introKeywords = [];
-        return;
-      }
-
-      state.introKeywords = (data || [])
-        .map(item => item.keyword)
-        .filter(Boolean);
+    async function enterApp() {
+      document.getElementById("gate-page").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      setPage("home");
+      await playIntro();
+      await loadDiaries();
     }
 
-    async function loadDiaries() {
-      let query = supabase
-        .from('diaries')
-        .select('id, keyword, summary, author, mood, created_at, updated_at, content')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (state.authorFilter !== 'all') {
-        query = query.eq('author', state.authorFilter);
-      }
-
-      if (state.search) {
-        const safe = state.search.replace(/[%_]/g, '').trim();
-        if (safe) {
-          query = query.or(`keyword.ilike.%${safe}%,summary.ilike.%${safe}%,content.ilike.%${safe}%`);
-        }
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      state.diaries = data || [];
-      renderDiaryList(state.diaries);
+    function kickToBaidu() {
+      setTimeout(() => {
+        window.location.href = "https://www.baidu.com/s?wd=" + encodeURIComponent("今天是几号");
+      }, 1700);
     }
 
-    function renderDiaryList(items) {
-      const list = document.getElementById('diary-list');
+    function renderDiaryList() {
+      const list = document.getElementById("diary-list");
+      let items = [...state.diaries];
+
+      if (state.authorFilter !== "all") {
+        items = items.filter((item) => item.author === state.authorFilter);
+      }
+
+      if (state.search.trim()) {
+        const q = state.search.trim().toLowerCase();
+        items = items.filter((item) =>
+          (item.keyword || "").toLowerCase().includes(q) ||
+          (item.summary || "").toLowerCase().includes(q) ||
+          (item.content || "").toLowerCase().includes(q)
+        );
+      }
+
       if (!items.length) {
         list.innerHTML = '<div class="empty">这里还没有你要找的那段记忆。</div>';
         return;
@@ -668,278 +889,348 @@
         <article class="list-card" data-diary-id="${item.id}">
           <div class="list-top">
             <div class="keyword-row">
-              <span>${escapeHtml(item.mood || '·')}</span>
+              <span>${escapeHtml(item.mood || "·")}</span>
               <strong>${escapeHtml(item.keyword)}</strong>
             </div>
-            <span class="meta">${escapeHtml((item.created_at || '').slice(5, 16).replace('T', ' '))}</span>
+            <span class="meta">${escapeHtml((item.created_at || "").slice(5, 16).replace("T", " "))}</span>
           </div>
-          <div class="summary">${escapeHtml(item.summary || '')}</div>
+          <div class="summary">${escapeHtml(item.summary)}</div>
           <div class="meta">${escapeHtml(authorLabel(item.author))}</div>
         </article>
-      `).join('');
+      `).join("");
 
-      list.querySelectorAll('[data-diary-id]').forEach((card) => {
-        card.addEventListener('click', async () => {
+      list.querySelectorAll("[data-diary-id]").forEach((card) => {
+        card.addEventListener("click", async () => {
           await openDiary(Number(card.dataset.diaryId));
         });
       });
     }
 
-    async function openDiary(id) {
-      const diary = state.diaries.find(item => item.id === id) || null;
-      if (!diary) {
-        const { data, error } = await supabase.from('diaries').select('*').eq('id', id).single();
-        if (error) {
-          showToast('读取正文失败');
-          return;
-        }
-        state.currentDiary = data;
-      } else {
-        state.currentDiary = diary;
+    async function loadDiaries() {
+      const { data, error } = await supabaseClient
+        .from("diaries")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        showToast("日记读取失败");
+        console.error(error);
+        return;
       }
 
-      const item = state.currentDiary;
-      document.getElementById('detail-meta').textContent =
-        `${authorLabel(item.author)} · ${new Date(item.created_at).toLocaleString('zh-CN', { hour12: false })}${item.mood ? ` · ${item.mood}` : ''}`;
-      document.getElementById('detail-keyword').textContent = item.keyword;
-      document.getElementById('detail-summary').textContent = item.summary || '';
-      document.getElementById('detail-content').textContent = item.content || '';
-
-      const editButton = document.getElementById('edit-button');
-      editButton.classList.toggle('hidden', !canEditDiary(item));
-
-      await loadComments(id);
-      setPage('detail');
+      state.diaries = data || [];
+      renderDiaryList();
     }
 
     async function loadComments(diaryId) {
-      // 这版默认使用 diary_comments 表。
-      // 如果你库里还没建，页面其余功能也能先跑，留言区会提示未启用。
-      const { data, error } = await supabase
-        .from('diary_comments')
-        .select('id, diary_id, author, content, created_at')
-        .eq('diary_id', diaryId)
-        .order('created_at', { ascending: true });
+      const { data, error } = await supabaseClient
+        .from("diary_comments")
+        .select("*")
+        .eq("diary_id", diaryId)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        document.getElementById('comment-list').innerHTML = '<div class="empty">留言功能暂未启用（需要 diary_comments 表）。</div>';
-        state.comments = [];
-        return;
+        showToast("留言读取失败");
+        console.error(error);
+        return [];
       }
 
-      state.comments = data || [];
-      renderComments();
+      return data || [];
     }
 
     function renderComments() {
-      const node = document.getElementById('comment-list');
-      if (!state.comments.length) {
-        node.innerHTML = '<div class="empty">这里还没有留言。</div>';
+      const wrap = document.getElementById("comment-list");
+
+      if (!state.currentComments.length) {
+        wrap.innerHTML = '<div class="empty">这里还没有留言。</div>';
         return;
       }
 
-      node.innerHTML = state.comments.map(item => `
-        <div class="comment-item">
-          <div class="comment-text">${escapeHtml(item.content)}</div>
-          <div class="comment-meta">${escapeHtml(authorLabel(item.author))} · ${escapeHtml(new Date(item.created_at).toLocaleString('zh-CN', { hour12: false }))}</div>
-        </div>
-      `).join('');
+      wrap.innerHTML = state.currentComments.map((item) => {
+        const canEdit = item.author === WEB_AUTHOR;
+        return `
+          <div class="comment-card" data-comment-id="${item.id}">
+            <div class="comment-head">
+              <div class="comment-author">${escapeHtml(authorLabel(item.author))}</div>
+              <div class="comment-time">${escapeHtml(formatTime(item.created_at))}</div>
+            </div>
+            <div class="comment-body">${escapeHtml(item.content)}</div>
+            ${canEdit ? `
+              <div class="comment-actions">
+                <button class="ghost" data-edit-comment="${item.id}">修改这条留言</button>
+              </div>
+              <div class="comment-editbox hidden" id="editbox-${item.id}">
+                <textarea class="comment-textarea" id="edit-comment-input-${item.id}">${escapeHtml(item.content)}</textarea>
+                <div class="comment-actions">
+                  <button class="button" data-save-comment="${item.id}">保存修改</button>
+                  <button class="ghost" data-cancel-comment="${item.id}">取消</button>
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+
+      wrap.querySelectorAll("[data-edit-comment]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById(`editbox-${btn.dataset.editComment}`).classList.remove("hidden");
+        });
+      });
+
+      wrap.querySelectorAll("[data-cancel-comment]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById(`editbox-${btn.dataset.cancelComment}`).classList.add("hidden");
+        });
+      });
+
+      wrap.querySelectorAll("[data-save-comment]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          await updateComment(Number(btn.dataset.saveComment));
+        });
+      });
     }
 
-    function openComposer(mode, payload = null) {
+    async function openDiary(id) {
+      const diary = state.diaries.find((item) => item.id === id);
+      if (!diary) {
+        showToast("找不到这篇日记");
+        return;
+      }
+
+      state.currentDiary = diary;
+      state.currentComments = await loadComments(id);
+
+      document.getElementById("detail-meta").textContent =
+        `${authorLabel(diary.author)} · ${formatTime(diary.created_at)}${diary.mood ? ` · ${diary.mood}` : ""}`;
+      document.getElementById("detail-keyword").textContent = diary.keyword;
+      document.getElementById("detail-summary").textContent = diary.summary;
+      document.getElementById("detail-content").textContent = diary.content;
+
+      const editButton = document.getElementById("edit-diary-button");
+      editButton.classList.toggle("hidden", diary.author !== WEB_AUTHOR);
+
+      document.getElementById("comment-input").value = "";
+      document.getElementById("comment-input").placeholder =
+        diary.author === "claude"
+          ? "看完之后，你想对 Claude 说什么？"
+          : "看完之后，你想在这篇后面留什么话？";
+
+      renderComments();
+      setPage("detail");
+    }
+
+    function openComposer(mode, diary = null) {
       state.composerMode = mode;
-      state.editingId = payload?.id || null;
-      state.composerType = payload?.composerType || 'diary';
-
-      document.getElementById('composer-title').textContent =
-        mode === 'edit' ? '修改这篇日记' : state.composerType === 'comment' ? '写一条留言' : '写一篇新日记';
-
-      document.getElementById('composer-mode').value = state.composerType;
-      document.getElementById('composer-author').value = payload?.author || state.identity;
-      document.getElementById('composer-keyword').value = payload?.keyword || '';
-      document.getElementById('composer-mood').value = payload?.mood || '';
-      document.getElementById('composer-content').value = payload?.content || '';
-
-      syncComposerMode();
-      setPage('composer');
+      state.editingDiaryId = diary?.id || null;
+      document.getElementById("composer-title").textContent =
+        mode === "edit" ? "修改这篇日记" : "写一篇新日记";
+      document.getElementById("composer-keyword").value = diary?.keyword || "";
+      document.getElementById("composer-mood").value = diary?.mood || "";
+      document.getElementById("composer-content").value = diary?.content || "";
+      setPage("composer");
     }
 
-    function syncComposerMode() {
-      const type = document.getElementById('composer-mode').value;
-      const keywordField = document.getElementById('keyword-field');
-      const moodField = document.getElementById('mood-field');
-      const contentLabel = document.getElementById('composer-content-label');
-      state.composerType = type;
+    async function saveDiary() {
+      const keyword = document.getElementById("composer-keyword").value.trim();
+      const mood = document.getElementById("composer-mood").value.trim();
+      const content = document.getElementById("composer-content").value.trim();
 
-      const commentMode = type === 'comment';
-      keywordField.classList.toggle('hidden', commentMode);
-      moodField.classList.toggle('hidden', commentMode);
-      contentLabel.textContent = commentMode ? '留言内容' : '正文';
+      if (!keyword || !content) {
+        showToast("关键词和正文都要写");
+        return;
+      }
 
-      if (commentMode && state.currentDiary) {
-        document.getElementById('composer-title').textContent = '写一条留言';
+      const payload = {
+        keyword,
+        mood: mood || null,
+        content,
+        summary: summarizeText(content, keyword)
+      };
+
+      if (state.composerMode === "create") {
+        const { error } = await supabaseClient
+          .from("diaries")
+          .insert({
+            ...payload,
+            author: WEB_AUTHOR
+          });
+
+        if (error) {
+          showToast("写日记失败");
+          console.error(error);
+          return;
+        }
+
+        showToast("写好了");
+      } else {
+        if (!state.currentDiary || state.currentDiary.author !== WEB_AUTHOR) {
+          showToast("不能修改对方原文");
+          return;
+        }
+
+        const { error } = await supabaseClient
+          .from("diaries")
+          .update(payload)
+          .eq("id", state.editingDiaryId)
+          .eq("author", WEB_AUTHOR);
+
+        if (error) {
+          showToast("修改失败");
+          console.error(error);
+          return;
+        }
+
+        showToast("改好了");
+      }
+
+      await loadDiaries();
+
+      if (state.composerMode === "edit") {
+        await openDiary(state.editingDiaryId);
+      } else {
+        state.authorFilter = "xiaofeng";
+        syncFilters();
+        setPage("list");
       }
     }
 
-    async function saveDiaryOrComment() {
-      const type = document.getElementById('composer-mode').value;
-      const author = document.getElementById('composer-author').value;
-      const keyword = document.getElementById('composer-keyword').value.trim();
-      const mood = document.getElementById('composer-mood').value.trim();
-      const content = document.getElementById('composer-content').value.trim();
+    async function addComment() {
+      if (!state.currentDiary) return;
 
+      const content = document.getElementById("comment-input").value.trim();
       if (!content) {
-        showToast(type === 'comment' ? '留言不能为空' : '正文不能为空');
+        showToast("你还什么都没写");
         return;
       }
 
-      if (author !== state.identity) {
-        showToast('网页里只能以你自己的身份书写');
-        return;
-      }
-
-      if (type === 'comment') {
-        if (!state.currentDiary?.id) {
-          showToast('请先进入一篇日记再留言');
-          return;
-        }
-
-        const { error } = await supabase
-          .from('diary_comments')
-          .insert({ diary_id: state.currentDiary.id, author, content });
-
-        if (error) {
-          showToast('留言失败，请先确认 diary_comments 表已建立');
-          return;
-        }
-
-        showToast('留言好了');
-        await loadComments(state.currentDiary.id);
-        setPage('detail');
-        return;
-      }
-
-      if (!keyword) {
-        showToast('关键词要写');
-        return;
-      }
-
-      const summary = content.replace(/\s+/g, ' ').trim().slice(0, 48) + (content.replace(/\s+/g, ' ').trim().length > 48 ? '...' : '');
-
-      if (state.composerMode === 'edit') {
-        if (!state.currentDiary || !canEditDiary(state.currentDiary)) {
-          showToast('不能修改对方的原文');
-          return;
-        }
-
-        const { error } = await supabase
-          .from('diaries')
-          .update({ keyword, mood: mood || null, content, summary, updated_at: new Date().toISOString() })
-          .eq('id', state.editingId);
-
-        if (error) {
-          showToast('修改失败');
-          return;
-        }
-
-        showToast('修改成功');
-        await loadDiaries();
-        await openDiary(state.editingId);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('diaries')
-        .insert({ keyword, mood: mood || null, content, summary, author })
-        .select('*')
-        .single();
+      const { error } = await supabaseClient
+        .from("diary_comments")
+        .insert({
+          diary_id: state.currentDiary.id,
+          author: WEB_AUTHOR,
+          content
+        });
 
       if (error) {
-        showToast('写入失败');
+        showToast("留言失败");
+        console.error(error);
         return;
       }
 
-      showToast('写好了');
-      state.authorFilter = author;
-      syncFilters();
-      await loadIntroKeywords();
-      await loadDiaries();
-      await openDiary(data.id);
+      document.getElementById("comment-input").value = "";
+      state.currentComments = await loadComments(state.currentDiary.id);
+      renderComments();
+      showToast("这句话留下来了");
     }
 
-    document.getElementById('gate-submit').addEventListener('click', async () => {
-      const input = document.getElementById('gate-input').value.trim();
-      if (input !== PASSCODE) {
-        document.getElementById('gate-error').textContent = '今天几号都不知道就来敲门？去查一下再来。';
-        setTimeout(() => {
-          window.location.href = 'https://www.baidu.com/s?wd=' + encodeURIComponent('今天是几号');
-        }, 1200);
+    async function updateComment(commentId) {
+      const input = document.getElementById(`edit-comment-input-${commentId}`);
+      if (!input) return;
+
+      const content = input.value.trim();
+      if (!content) {
+        showToast("留言不能为空");
         return;
       }
 
-      document.getElementById('gate-screen').classList.add('hidden');
-      try {
-        await loadIntroKeywords();
-        await loadDiaries();
-      } catch (error) {
+      const { error } = await supabaseClient
+        .from("diary_comments")
+        .update({ content })
+        .eq("id", commentId)
+        .eq("author", WEB_AUTHOR);
+
+      if (error) {
+        showToast("修改留言失败");
         console.error(error);
-        showToast('Supabase 连接失败，请检查 URL 和 anon key');
+        return;
       }
-      openIntro();
+
+      state.currentComments = await loadComments(state.currentDiary.id);
+      renderComments();
+      showToast("留言改好了");
+    }
+
+    // ====== 事件 ======
+    document.getElementById("gate-submit").addEventListener("click", async () => {
+      const value = document.getElementById("gate-input").value.trim();
+      const errorBox = document.getElementById("gate-error");
+
+      if (value === PASSWORD) {
+        errorBox.textContent = "";
+        errorBox.classList.remove("mock");
+        await enterApp();
+      } else {
+        errorBox.textContent = "连今天几号都不知道也敢来敲门？快去查清楚再来。";
+        errorBox.classList.add("mock");
+        kickToBaidu();
+      }
     });
 
-    document.getElementById('gate-input').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') document.getElementById('gate-submit').click();
+    document.getElementById("gate-input").addEventListener("keydown", async (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("gate-submit").click();
+      }
     });
 
-    document.querySelectorAll('[data-enter-author]').forEach((card) => {
-      card.addEventListener('click', async () => {
+    document.querySelectorAll("[data-enter-author]").forEach((card) => {
+      card.addEventListener("click", async () => {
         state.authorFilter = card.dataset.enterAuthor;
         syncFilters();
-        setPage('list');
-        try { await loadDiaries(); } catch (error) { showToast('读取失败'); }
+        setPage("list");
+        renderDiaryList();
       });
     });
 
-    document.getElementById('mixed-entry').addEventListener('click', async () => {
-      state.authorFilter = 'all';
+    document.getElementById("mixed-entry").addEventListener("click", () => {
+      state.authorFilter = "all";
       syncFilters();
-      setPage('list');
-      try { await loadDiaries(); } catch (error) { showToast('读取失败'); }
+      setPage("list");
+      renderDiaryList();
     });
 
-    document.getElementById('back-home').addEventListener('click', () => setPage('home'));
-    document.getElementById('back-list').addEventListener('click', () => setPage('list'));
-    document.getElementById('back-composer').addEventListener('click', () => setPage(state.currentDiary ? 'detail' : 'list'));
+    document.getElementById("back-home").addEventListener("click", () => setPage("home"));
+    document.getElementById("back-list").addEventListener("click", () => setPage("list"));
+    document.getElementById("back-composer").addEventListener("click", () => {
+      setPage(state.currentDiary ? "detail" : "list");
+    });
 
-    document.getElementById('write-button').addEventListener('click', () => openComposer('create', { author: state.identity, composerType: 'diary' }));
-    document.getElementById('comment-button').addEventListener('click', () => openComposer('create', { author: state.identity, composerType: 'comment' }));
-    document.getElementById('edit-button').addEventListener('click', () => {
-      if (!state.currentDiary || !canEditDiary(state.currentDiary)) {
-        showToast('不能修改对方的原文');
+    document.getElementById("write-button").addEventListener("click", () => {
+      openComposer("create");
+    });
+
+    document.getElementById("edit-diary-button").addEventListener("click", () => {
+      if (!state.currentDiary) return;
+      if (state.currentDiary.author !== WEB_AUTHOR) {
+        showToast("不能修改对方原文");
         return;
       }
-      openComposer('edit', state.currentDiary);
+      openComposer("edit", state.currentDiary);
     });
 
-    document.getElementById('composer-mode').addEventListener('change', syncComposerMode);
-    document.getElementById('save-button').addEventListener('click', saveDiaryOrComment);
-    document.getElementById('cancel-button').addEventListener('click', () => setPage(state.currentDiary ? 'detail' : 'list'));
+    document.getElementById("save-diary-button").addEventListener("click", saveDiary);
+    document.getElementById("cancel-diary-button").addEventListener("click", () => {
+      setPage(state.currentDiary ? "detail" : "list");
+    });
 
-    document.getElementById('search-input').addEventListener('input', async (event) => {
+    document.getElementById("comment-submit").addEventListener("click", addComment);
+
+    document.getElementById("search-input").addEventListener("input", (event) => {
       state.search = event.target.value.trim();
-      try { await loadDiaries(); } catch (error) { showToast('搜索失败'); }
+      renderDiaryList();
     });
 
-    document.querySelectorAll('.filter-chip').forEach((button) => {
-      button.addEventListener('click', async () => {
+    document.querySelectorAll(".filter-chip").forEach((button) => {
+      button.addEventListener("click", () => {
         state.authorFilter = button.dataset.author;
         syncFilters();
-        try { await loadDiaries(); } catch (error) { showToast('读取失败'); }
+        renderDiaryList();
       });
     });
 
+    // ====== 初始化 ======
     syncFilters();
+    setPage("home");
   </script>
 </body>
 </html>
