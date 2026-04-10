@@ -257,8 +257,8 @@
 <body>
   <section class="full-screen" id="gate-page">
     <div class="gate-card">
-      <h1 class="gate-title">我们的日记本</h1>
-      <p class="gate-tip">请输入今天的日期</p>
+      <h1 class="gate-title">请输入今天的日期</h1>
+      <p class="gate-tip">欢迎来到日记本</p>
       <input id="gate-input" class="gate-input" type="password" inputmode="numeric" placeholder="例如：0409" />
       <div class="gate-actions">
         <button id="gate-submit" class="button">敲门</button>
@@ -270,7 +270,7 @@
   <section class="intro hidden" id="intro-screen">
     <div class="intro-center">
       <div class="intro-note">回忆涌来...</div>
-      <div class="intro-tip">点页面任意位置可跳过</div>
+      <div class="intro-tip"></div>
     </div>
   </section>
 
@@ -292,7 +292,7 @@
               <div class="entry-meta">去看 Claude 写下来的东西。</div>
             </article>
           </div>
-          <div class="timeline-link" id="mixed-entry">看混合时间线 →</div>
+          <div class="timeline-link" id="mixed-entry">混合时间线 →</div>
           <div class="timeline-link" id="calendar-entry">打开日历 →</div>
         </div>
       </div>
@@ -350,7 +350,7 @@
 
           <div id="comment-area-wrap" class="comment-area-wrap hidden">
             <div class="comment-editor hidden" id="comment-editor">
-              <textarea id="comment-input" class="comment-textarea" placeholder="看完之后，你想对这篇日记说什么？"></textarea>
+              <textarea id="comment-input" class="comment-textarea" placeholder="即将发表重大讲话"></textarea>
               <div class="comment-actions">
                 <button class="button" id="comment-submit">留下这句话</button>
               </div>
@@ -373,15 +373,15 @@
           <h2 id="composer-title">写一篇新日记</h2>
           <div class="field">
             <label for="composer-keyword">关键词</label>
-            <input id="composer-keyword" type="text" placeholder="比如：养乐多、第三个空、我愿意" />
+            <input id="composer-keyword" type="text" placeholder="" />
           </div>
           <div class="field">
             <label for="composer-mood">心情</label>
-            <input id="composer-mood" type="text" placeholder="可选，emoji 或文字都可以" />
+            <input id="composer-mood" type="text" placeholder="今天开心吗" />
           </div>
           <div class="field">
             <label for="composer-content">正文</label>
-            <textarea id="composer-content" placeholder="这里写完整正文。摘要会自动生成。"></textarea>
+            <textarea id="composer-content" placeholder="写完正文后会自动生成摘要"></textarea>
           </div>
           <div class="composer-actions">
             <button class="button" id="save-diary-button">保存</button>
@@ -577,7 +577,7 @@
       intro.innerHTML = `
         <div class="intro-center">
           <div class="intro-note">回忆涌来...</div>
-          <div class="intro-tip">点页面任意位置可跳过</div>
+          <div class="intro-tip"></div>
         </div>
       `;
       intro.classList.remove("hidden");
@@ -947,7 +947,7 @@
       const value = document.getElementById("gate-input").value.trim();
       const errorBox = document.getElementById("gate-error");
       if (isBlocked()) {
-        errorBox.textContent = "门已经彻底对你关上了。";
+        errorBox.textContent = "你已被拉黑。";
         errorBox.classList.add("mock");
         kickToBaidu();
         return;
@@ -959,7 +959,7 @@
         await enterApp();
       } else {
         const blocked = registerFailure();
-        errorBox.textContent = blocked ? "你被永远拉黑了。" : "连今天几号都不知道也敢来敲门？";
+        errorBox.textContent = blocked ? "你被永远拉黑了。" : "你确定？要不再查查？";
         errorBox.classList.add("mock");
         kickToBaidu();
       }
@@ -1045,7 +1045,7 @@
       setPage("home");
       if (isBlocked()) {
         const errorBox = document.getElementById("gate-error");
-        errorBox.textContent = "门已经彻底对你关上了。";
+        errorBox.textContent = "你已被拉黑。";
         errorBox.classList.add("mock");
         return;
       }
